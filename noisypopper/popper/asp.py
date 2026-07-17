@@ -1,10 +1,11 @@
 import os
+from pathlib import Path
 import re
 import sys
 import clingo
 import operator
 import numbers
-import pkg_resources
+# import pkg_resources
 from . core import Grounding, ConstVar
 from collections import OrderedDict
 from clingo import Function, Number, Tuple_
@@ -118,7 +119,7 @@ class ClingoSolver():
     @staticmethod
     def load_alan(settings, ctrl):
         encoding = []
-        alan = pkg_resources.resource_string(__name__, "lp/alan.pl").decode()
+        alan = (Path(__file__).parent / "lp/alan.pl").read_text()
         encoding.append(alan)
         with open(settings.bias_file) as f:
             encoding.append(f.read())

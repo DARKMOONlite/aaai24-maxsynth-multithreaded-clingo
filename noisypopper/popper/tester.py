@@ -1,9 +1,11 @@
+from pathlib import Path
+
 from pyswip import Prolog
 
 import os
 import sys
 import time
-import pkg_resources
+# import pkg_resources
 from contextlib import contextmanager
 from . core import Clause, Literal
 from datetime import datetime
@@ -19,7 +21,7 @@ class Tester():
 
         bk_pl_path = self.settings.bk_file
         exs_pl_path = self.settings.ex_file
-        test_pl_path = pkg_resources.resource_filename(__name__, "lp/test.pl")
+        test_pl_path = str(Path(__file__).parent / "lp/test.pl")
 
         for x in [exs_pl_path, bk_pl_path, test_pl_path]:
             if os.name == 'nt': # if on Windows, SWI requires escaped directory separators

@@ -1,7 +1,7 @@
 import os
 import time
 import numpy as np
-import pkg_resources
+from pathlib import Path
 from pyswip import Prolog
 from pyswip.prolog import PrologError
 from contextlib import contextmanager
@@ -9,7 +9,6 @@ from . util import format_rule, order_rule, order_prog, prog_is_recursive, forma
 
 import clingo
 import clingo.script
-import pkg_resources
 from . core import Literal
 from . generate import parse_model
 from collections import defaultdict
@@ -29,7 +28,7 @@ class Tester():
 
         bk_pl_path = self.settings.bk_file
         exs_pl_path = self.settings.ex_file
-        test_pl_path = pkg_resources.resource_filename(__name__, "lp/test.pl")
+        test_pl_path = str(Path(__file__).parent / "lp/test.pl")
 
         with self.settings.stats.duration('load data'):
             for x in [exs_pl_path, bk_pl_path, test_pl_path]:

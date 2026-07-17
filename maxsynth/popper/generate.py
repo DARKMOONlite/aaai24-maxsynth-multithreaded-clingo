@@ -2,7 +2,7 @@ import clingo
 import operator
 import numbers
 import clingo.script
-import pkg_resources
+from pathlib import Path
 from . core import Literal, RuleVar, VarVar, Var
 from collections import defaultdict
 from . util import rule_is_recursive, format_rule
@@ -224,7 +224,7 @@ class Generator:
         self.seen_symbols = {}
 
         encoding = []
-        alan = pkg_resources.resource_string(__name__, "lp/alan.pl").decode()
+        alan = (Path(__file__).parent / "lp/alan.pl").read_text()
         encoding.append(alan)
         with open(settings.bias_file) as f:
             encoding.append(f.read())

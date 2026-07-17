@@ -321,7 +321,7 @@ class Settings:
                  ex_file=False, bk_file=False, bias_file=False, nonoise=False, lex=False, lex_via_weights=False, solver="maxsat",
                  maxsat_timeout=None, exact_maxsat_solver="uwrmaxsat", exact_maxsat_solver_params="-v0 -no-sat -no-bin -m -bm",
                  anytime_maxsat_solver=None, anytime_maxsat_solver_params="", old_format=False,
-                 batch_combine=True, delete_combine=False, datalog=False, constraints=True, specialisationprune=True):
+                 batch_combine=True, delete_combine=False, datalog=False, constraints=True, num_cores=1, specialisationprune=True):
 
         if cmd_line:
             args = parse_args()
@@ -354,6 +354,7 @@ class Settings:
             datalog = args.datalog
             constraints = args.constraints
             specialisationprune = args.specialisation_prune
+            num_cores = args.num_cores
         else:
             if kbpath:
                 self.bk_file, self.ex_file, self.bias_file = load_kbpath(kbpath)
@@ -396,6 +397,7 @@ class Settings:
         self.functional_test = functional_test
         self.explain = explain
         self.test = test
+        
         self.timeout = timeout
         self.eval_timeout = eval_timeout
         self.max_examples = max_examples
@@ -411,8 +413,13 @@ class Settings:
         self.best_prog_score = None
         self.constraints = constraints
         self.specialisationprune = specialisationprune
+        
+        self.num_cores = num_cores
 
-        solver = clingo.Control(['-Wnone'])
+        if self.num_cores == 1:
+            solver = clingo.Control(['-Wnone'])
+        else:
+            solver = clingo.Control(['-Wnone', f"--parallel-mode={num_cores}"])
         with open(self.bias_file) as f:
             solver.add('bias', [], f.read())
         solver.add('bias', [], """

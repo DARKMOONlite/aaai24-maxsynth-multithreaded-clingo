@@ -2,7 +2,7 @@ import clingo
 import clingo.script
 from . core import Literal
 from clingo import Function, Number, Tuple_
-import pkg_resources
+from pathlib import Path
 
 # tmp_map = {1:'A', 2:'A,B',3:'A,B,C', 4:'A,B,C,D',5:'A,B,C,D,E', 6:'A,B,C,D,E,F'}
 tmp_map = {}
@@ -63,7 +63,7 @@ def deduce_bk_cons(settings):
     with open(settings.bk_file) as f:
         bk = f.read()
 
-    cons = pkg_resources.resource_string(__name__, "lp/cons.pl").decode()
+    cons = (Path(__file__).parent / "lp/cons.pl").read_text()
     bk = bk.replace('\+','not')
 
     xs = deduce_bk_cons_aux(cons, prog, bias, bk)

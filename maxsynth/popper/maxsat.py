@@ -4,6 +4,19 @@ from pysat.formula import WCNF
 from pysat.examples.rc2 import RC2
 from pysat.card import *
 
+def rc2_solve(hard_clauses, soft_clauses, weights):
+	rc2 = RC2(WCNF())
+	for clause in hard_clauses:
+		rc2.add_clause(clause)
+	for clause, w in zip(soft_clauses, weights):
+		if w == 0:
+			continue
+		rc2.add_clause(clause, weight=w)
+	model = rc2.compute()
+	if model is not None:
+		return rc2.cost, model
+	return float("inf"), None
+
 def old_wcnf_to_file(hard_clauses, soft_clauses, weights, file):
 	n_vars = 0
 	for clause in hard_clauses:
@@ -33,23 +46,17 @@ def new_wcnf_to_file(hard_clauses, soft_clauses, weights, file):
 def exact_maxsat_solve(hard_clauses, soft_clauses, weights, settings):
 	settings.stats.maxsat_calls += 1
 	if settings.exact_maxsat_solver == "rc2":
-		rc2 = RC2(WCNF())
-		for clause in hard_clauses:
-			rc2.add_clause(clause)
-		for clause, w in zip(soft_clauses, weights):
-			if w == 0:
-				continue
-			rc2.add_clause(clause, weight=w)
-		model = rc2.compute()
-		if model is not None:
-			return rc2.cost, model
-		return float("inf"), None
+		return rc2_solve(hard_clauses, soft_clauses, weights)
 	elif settings.old_format is False:
 		with tempfile.NamedTemporaryFile(mode="w", suffix=".wcnf") as tmp:
 			new_wcnf_to_file(hard_clauses, soft_clauses, weights, tmp)
 
 			try:
 				output = subprocess.check_output([os.path.join(os.path.dirname(__file__), settings.exact_maxsat_solver)] + settings.exact_maxsat_solver_params.split() + [tmp.name]).decode("utf-8").split("\n")
+			except OSError as error:
+				if error.errno == 8:
+					return rc2_solve(hard_clauses, soft_clauses, weights)
+				raise
 			except subprocess.CalledProcessError as error:
 				output = error.output.decode("utf-8").split("\n")
 		if "s UNSATISFIABLE" in output:
@@ -69,6 +76,10 @@ def exact_maxsat_solve(hard_clauses, soft_clauses, weights, settings):
 			old_wcnf_to_file(hard_clauses, soft_clauses, weights, tmp)
 			try:
 				output = subprocess.check_output([os.path.join(os.path.dirname(__file__), settings.exact_maxsat_solver)] + settings.exact_maxsat_solver_params.split() + [tmp.name]).decode("utf-8").split("\n")
+			except OSError as error:
+				if error.errno == 8:
+					return rc2_solve(hard_clauses, soft_clauses, weights)
+				raise
 			except subprocess.CalledProcessError as error:
 				output = error.output.decode("utf-8").split("\n")
 		if "UNSATISFIABLE" in output:

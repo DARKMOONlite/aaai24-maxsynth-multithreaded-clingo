@@ -5,7 +5,7 @@ import numbers
 import numpy as np
 from clingo import Function, Number, Tuple_
 from itertools import chain, combinations
-import pkg_resources
+# import pkg_resources
 from pyswip import Prolog
 from contextlib import contextmanager
 from . util import format_rule, order_rule, order_prog, prog_is_recursive, format_prog, format_literal, rule_is_recursive
