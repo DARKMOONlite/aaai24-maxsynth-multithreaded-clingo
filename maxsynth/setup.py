@@ -6,13 +6,13 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="popper-ilp",
+    name="maxsynth-ilp",
     version="2.0.0",                        # Update this for every new version
     description="Popper",
     include_package_data=True,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    py_modules=['popper'],
+    py_modules=['maxsynth_popper'],
     install_requires=[
         'clingo',
         'pyswip'
