@@ -1,1 +1,2 @@
+include popper/uwrmaxsat
 include popper/lp/*.pl

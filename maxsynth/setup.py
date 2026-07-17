@@ -17,6 +17,7 @@ setuptools.setup(
     url="https://github.com/logic-and-learning-lab/Popper",
     packages=["maxsynth_popper"],
     package_dir={"maxsynth_popper": "popper"},
+    package_data={"maxsynth_popper": ["uwrmaxsat", "lp/*.pl"]},
     # classifiers=(                                 # Classifiers help people find your
         # "Programming Language :: Python :: 3"    # projects. See all possible classifiers
     # ),
