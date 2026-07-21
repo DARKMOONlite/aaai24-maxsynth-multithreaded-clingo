@@ -1,3 +1,4 @@
+import datetime
 import os
 import time
 import numpy as np
@@ -14,18 +15,32 @@ from . generate import parse_model
 from collections import defaultdict
 
 class Tester():
+    module_name:str
+    def _in_module(self, query):
+        return f"{self.module_name}:({query.strip().rstrip('.')})"
+
+    def _bool_query_raw(self, query):
+        return len(list(self.prolog.query(query))) > 0
 
     def query(self, query, key):
-        result = next(self.prolog.query(query))[key]
+        result = next(self.prolog.query(self._in_module(query)))[key]
         return set(result)
 
     def bool_query(self, query,):
-        return len(list(self.prolog.query(query))) > 0
+        return self._bool_query_raw(self._in_module(query))
 
     def __init__(self, settings):
         self.settings = settings
         self.prolog = Prolog()
+        
+        self.module_name = module_name = 'popper_tester_module_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
+        if not self._bool_query_raw('use_module(library(modules))'):
+            raise Exception('library(modules) not loaded')
+        
+        if not self._bool_query_raw(f'modules:prepare_temporary_module({module_name})'):
+            raise Exception(f'module {module_name} not created')
+        
         bk_pl_path = self.settings.bk_file
         exs_pl_path = self.settings.ex_file
         test_pl_path = str(Path(__file__).parent / "lp/test.pl")
@@ -34,7 +49,8 @@ class Tester():
             for x in [exs_pl_path, bk_pl_path, test_pl_path]:
                 if os.name == 'nt': # if on Windows, SWI requires escaped directory separators
                     x = x.replace('\\', '\\\\')
-                self.prolog.consult(x)
+                if not self.bool_query(f"consult('{x}')"):
+                    raise Exception(f'consult failed for {x}')
 
         # load examples
         self.bool_query(f'load_examples')
@@ -75,10 +91,10 @@ class Tester():
             atom_str = format_literal(head)
             body_str = format_rule((None,ordered_body))[2:-1]
             q = f'findall(ID, (pos_index(ID,{atom_str}),({body_str}->  true)), Xs)'
-            xs = next(self.prolog.query(q))
+            xs = next(self.prolog.query(self._in_module(q)))
             pos_covered = frozenset(xs['Xs'])
             q = f'findall(ID, (neg_index(ID,{atom_str}),({body_str}->  true)), Xs)'
-            xs = next(self.prolog.query(q))
+            xs = next(self.prolog.query(self._in_module(q)))
             neg_covered = frozenset(xs['Xs'])
         except PrologError as err:
             print('PROLOG ERROR',err)
@@ -88,7 +104,7 @@ class Tester():
         if len(self.neg_index) == 0:
             return False
         with self.using(prog):
-            return len(list(self.prolog.query("inconsistent"))) > 0
+            return self.bool_query("inconsistent")
 
     def is_complete(self, prog):
         with self.using(prog):
@@ -109,13 +125,13 @@ class Tester():
             for rule in prog:
                 head, _body = rule
                 x = format_rule(order_rule(rule, self.settings))[:-1]
-                self.prolog.assertz(x)
+                self.bool_query(f'assertz(({x}))')
                 current_clauses.add((head.predicate, head.arity))
             yield
         finally:
             for predicate, arity in current_clauses:
                 args = ','.join(['_'] * arity)
-                self.prolog.retractall(f'{predicate}({args})')
+                self.bool_query(f'retractall({predicate}({args}))')
 
     def is_non_functional(self, prog):
         with self.using(prog):
@@ -165,8 +181,7 @@ class Tester():
                 c = f"[{','.join(('not_'+ format_literal(head),) + tuple(format_literal(lit) for lit in body))}]"
             else:
                 c = f"[{','.join(tuple(format_literal(lit) for lit in body))}]"
-            res = list(self.prolog.query(f'redundant_literal({c})'))
-            if res:
+            if self.bool_query(f'redundant_literal({c})'):
                 yield rule
 
     def has_redundant_literal(self, prog):
@@ -176,8 +191,7 @@ class Tester():
                 c = f"[{','.join(('not_'+ format_literal(head),) + tuple(format_literal(lit) for lit in body))}]"
             else:
                 c = f"[{','.join(tuple(format_literal(lit) for lit in body))}]"
-            res = list(self.prolog.query(f'redundant_literal({c})'))
-            if res:
+            if self.bool_query(f'redundant_literal({c})'):
                 return True
         return False
 
@@ -187,7 +201,7 @@ class Tester():
             c = f"[{','.join(('not_'+ format_literal(head),) + tuple(format_literal(lit) for lit in body))}]"
             prog_.append(c)
         prog_ = f"[{','.join(prog_)}]"
-        return len(list(self.prolog.query(f'redundant_clause({prog_})'))) > 0
+        return self.bool_query(f'redundant_clause({prog_})')
         # return self.bool_query(f'redundant_clause({prog_})')
 
     def has_redundant_rule(self, prog):
@@ -213,7 +227,7 @@ class Tester():
         prog_ = f"[{','.join(prog_)}]"
         # print(prog_)
         q = f'find_redundant_rule({prog_},K1,K2)'
-        res = list(self.prolog.query(q))
+        res = list(self.prolog.query(self._in_module(q)))
         k1 = res[0]['K1']
         k2 = res[0]['K2']
         return prog[k1], prog[k2]
@@ -294,7 +308,10 @@ class Tester():
             for args, d2 in d1.items():
                 recall = max(len(xs) for xs in d2.values())
                 self.settings.recall[(pred, args)] = recall
-
+    def destroy_prolog_module(self) -> None:
+        if not self._bool_query_raw(f'modules:destroy_module({self.module_name})'):
+            raise Exception(f'module {self.module_name} not destroyed')
+        
 def generate_binary_strings(bit_count):
     binary_strings = []
     def genbin(n, bs=''):

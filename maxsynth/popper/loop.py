@@ -166,14 +166,14 @@ def build_constraints_previous_hypotheses(generator, num_pos, num_neg, seen_hyp_
     return cons
 
 
-def popper(settings, return_dict):
+def popper(settings,tester:Tester, return_dict):
     return_dict['solution'], return_dict['best_prog_score'], return_dict['stats'] = None, None, settings.stats
     if settings.bkcons:
         with settings.stats.duration('preprocessing'):
             deduce_bk_cons(settings)
 
     # print(settings.__dict__)
-    tester = Tester(settings)
+    #tester = Tester(settings)
     explainer = Explainer(settings, tester)
     grounder = Grounder(settings)
 
@@ -727,6 +727,8 @@ def popper(settings, return_dict):
 
 def learn_solution(settings):
     return_dict = dict()
-    timeout(settings, popper, (settings, return_dict), timeout_duration=int(settings.timeout), )
+    tester = Tester(settings)
+    timeout(settings, popper, (settings,tester, return_dict), timeout_duration=int(settings.timeout), )
     settings.stats.total_exec_time()
+    tester.destroy_prolog_module()
     return settings.best_prog, settings.best_prog_score, settings.stats

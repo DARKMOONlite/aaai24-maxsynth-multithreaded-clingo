@@ -11,7 +11,7 @@ This repository contains the experimental code and data for the paper: [Learning
 
 [pysat](https://developers.google.com/optimization)
 
-[uwrmaxsat](https://github.com/marekpiotrow/UWrMaxSat)
+[NuWLS-c](https://maxsat-evaluations.github.io/2023/descriptions.html)
 
 # Data
 

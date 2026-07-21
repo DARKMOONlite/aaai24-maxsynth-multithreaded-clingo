@@ -141,11 +141,17 @@ class MaxSynth(System):
         self.batch_combine = batch_combine
         self.lex = lex
         if self.solver == 'maxsat':
-            self.exact_maxsat_solver = 'uwrmaxsat'
-            self.exact_maxsat_solver_params = "-v0 -no-sat -no-bin -m -bm"
-        else:
+            self.maxsat_timeout = 10
             self.exact_maxsat_solver = "rc2"
             self.exact_maxsat_solver_params = ""
+            self.anytime_maxsat_solver = "NuWLS-c"
+            self.anytime_maxsat_solver_params = ""
+        else:
+            self.maxsat_timeout = None
+            self.exact_maxsat_solver = "rc2"
+            self.exact_maxsat_solver_params = ""
+            self.anytime_maxsat_solver = None
+            self.anytime_maxsat_solver_params = ""
 
     def train(self, train_settings):
 
@@ -164,8 +170,11 @@ class MaxSynth(System):
                             constraints=self.constraints,
                             batch_combine=self.batch_combine,
                             lex=self.lex,
+                            maxsat_timeout=self.maxsat_timeout,
                             exact_maxsat_solver=self.exact_maxsat_solver,
-                            exact_maxsat_solver_params=self.exact_maxsat_solver_params
+                            exact_maxsat_solver_params=self.exact_maxsat_solver_params,
+                            anytime_maxsat_solver=self.anytime_maxsat_solver,
+                            anytime_maxsat_solver_params=self.anytime_maxsat_solver_params
             )
 
             manager = multiprocess.Manager()

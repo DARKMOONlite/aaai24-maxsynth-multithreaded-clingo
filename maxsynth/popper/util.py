@@ -42,10 +42,10 @@ def parse_args():
     parser.add_argument("--lex", default=False, action='store_true', help='enforce lexicographic objective')
     parser.add_argument("--lex-via-weights", default=False, action='store_true', help='lexicographic optimization using exponential weights')
     parser.add_argument("--solver", choices=["clingo", "maxsat"], default="maxsat", help='choose solver')
-    parser.add_argument("--maxsat-timeout", type=float, default=None, help='EXPERIMENTAL FEATURE: anytime MaxSAT timeout')
-    parser.add_argument("--exact-maxsat-solver", default="uwrmaxsat", help='Exact MaxSAT solver path (or rc2 for PySAT)')
-    parser.add_argument("--exact-maxsat-solver-params", default="-v0 -no-sat -no-bin -m -bm", help='Exact MaxSAT solver command-line parameters')
-    parser.add_argument("--anytime-maxsat-solver", default=None, help='Anytime MaxSAT solver path')
+    parser.add_argument("--maxsat-timeout", type=float, default=10, help='Anytime MaxSAT timeout (default: 10)')
+    parser.add_argument("--exact-maxsat-solver", default="rc2", help='Exact MaxSAT solver path (or rc2 for PySAT)')
+    parser.add_argument("--exact-maxsat-solver-params", default="", help='Exact MaxSAT solver command-line parameters')
+    parser.add_argument("--anytime-maxsat-solver", default="NuWLS-c", help='Anytime MaxSAT solver path or executable name')
     parser.add_argument("--anytime-maxsat-solver-params", default="", help='Anytime MaxSAT solver command-line parameters')
     parser.add_argument("--old-format", default=False, action='store_true', help='Use old format for WCNF files')
     parser.add_argument("--specialisation-prune", default=True, action='store_false',
@@ -87,6 +87,16 @@ def load_kbpath(kbpath):
         full_filename = os.path.join(kbpath, filename)
         return full_filename.replace('\\', '\\\\') if os.name == 'nt' else full_filename
     return fix_path("bk.pl"), fix_path("exs.pl"), fix_path("bias.pl")
+
+def calc_prog_size(prog):
+    total = 0
+    for _head, body in prog:
+        total += 1 + len(body)
+    return total
+
+def calc_rule_size(rule):
+    head, body = rule
+    return 1 + len(body)
 
 class Stats:
     def __init__(self, info = False, debug = False):
@@ -319,8 +329,8 @@ class Settings:
                  timeout=TIMEOUT, quiet=False, eval_timeout=EVAL_TIMEOUT, max_examples=MAX_EXAMPLES, max_body=MAX_BODY,
                  max_rules=MAX_RULES, max_vars=MAX_VARS, functional_test=False, explain=True, test=False, kbpath=False,
                  ex_file=False, bk_file=False, bias_file=False, nonoise=False, lex=False, lex_via_weights=False, solver="maxsat",
-                 maxsat_timeout=None, exact_maxsat_solver="uwrmaxsat", exact_maxsat_solver_params="-v0 -no-sat -no-bin -m -bm",
-                 anytime_maxsat_solver=None, anytime_maxsat_solver_params="", old_format=False,
+                 maxsat_timeout=10, exact_maxsat_solver="rc2", exact_maxsat_solver_params="",
+                 anytime_maxsat_solver="NuWLS-c", anytime_maxsat_solver_params="", old_format=False,
                  batch_combine=True, delete_combine=False, datalog=False, constraints=True, num_cores=1, specialisationprune=True):
 
         if cmd_line:
@@ -474,3 +484,20 @@ class Settings:
         for rule in order_prog(prog):
             self.logger.info(format_rule(order_rule(rule)))
         self.logger.info('*'*20)
+def print_prog_score(self, prog, score, settings, noisy: bool):
+    tp, fn, tn, fp = score
+    size = calc_prog_size(prog)
+    precision = 'n/a'
+    if (tp+fp) > 0:
+        precision = f'{tp / (tp+fp):0.2f}'
+    recall = 'n/a'
+    if (tp+fn) > 0:
+        recall = f'{tp / (tp+fn):0.2f}'
+    self.logger.out('*'*10 + ' SOLUTION ' + '*'*10)
+    if noisy:
+        self.logger.out(f'Precision:{precision} Recall:{recall} TP:{tp} FN:{fn} TN:{tn} FP:{fp} Size:{size} MDL:{size+fn+fp}')
+    else:
+        self.logger.out(f'Precision:{precision} Recall:{recall} TP:{tp} FN:{fn} TN:{tn} FP:{fp} Size:{size}')
+    for rule in order_prog(prog):
+        self.logger.out(format_rule(order_rule(rule, settings)))
+    self.logger.out('*'*30)
